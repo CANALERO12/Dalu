@@ -3,7 +3,7 @@ from PySide6.QtCore import Qt, Signal
 import sqlite3
 
 class DeudasWidget(QWidget):
-    deuda_pagada = Signal()  # Señal para notificar que una deuda fue pagada
+    deuda_pagada = Signal()
 
     def __init__(self, conn):
         super().__init__()
@@ -14,13 +14,11 @@ class DeudasWidget(QWidget):
     def init_ui(self):
         layout = QVBoxLayout()
 
-        # Título
         self.title_label = QLabel("Deudas Pendientes")
         self.title_label.setAlignment(Qt.AlignCenter)
         self.title_label.setStyleSheet("font-size: 20px; font-weight: bold; color: #1A3C6D; margin-bottom: 10px;")
         layout.addWidget(self.title_label)
 
-        # Lista de deudas
         self.lista_deudas = QListWidget()
         self.lista_deudas.setStyleSheet("""
             QListWidget {
@@ -31,14 +29,11 @@ class DeudasWidget(QWidget):
                 padding: 5px;
                 font-size: 14px;
             }
-            QListWidget::item:selected {
-                background-color: #E6F0FA;
-                color: #1A3C6D;
-            }
+            QListWidget::item:selected { background-color: #E6F0FA; color: #1A3C6D; }
         """)
+        self.lista_deudas.setMinimumWidth(300)  # Ancho mínimo inicial
         layout.addWidget(self.lista_deudas)
 
-        # Botón para marcar deuda como pagada
         self.marcar_pagada_btn = QPushButton("Marcar Deuda como Pagada")
         self.marcar_pagada_btn.setStyleSheet("""
             QPushButton {
@@ -51,13 +46,8 @@ class DeudasWidget(QWidget):
                 border-radius: 8px;
                 box-shadow: 0 2px 5px rgba(0,0,0,0.2);
             }
-            QPushButton:hover {
-                background: qlineargradient(x1:0, y1:0, x2:0, y2:1, stop:0 #6AA8F7, stop:1 #4A90E2);
-            }
-            QPushButton:pressed {
-                background: qlineargradient(x1:0, y1:0, x2:0, y2:1, stop:0 #357ABD, stop:1 #2A5F9A);
-                box-shadow: 0 1px 3px rgba(0,0,0,0.3);
-            }
+            QPushButton:hover { background: qlineargradient(x1:0, y1:0, x2:0, y2:1, stop:0 #6AA8F7, stop:1 #4A90E2); }
+            QPushButton:pressed { background: qlineargradient(x1:0, y1:0, x2:0, y2:1, stop:0 #357ABD, stop:1 #2A5F9A); }
         """)
         self.marcar_pagada_btn.clicked.connect(self.marcar_pagada)
         layout.addWidget(self.marcar_pagada_btn, alignment=Qt.AlignCenter)
@@ -65,6 +55,11 @@ class DeudasWidget(QWidget):
         self.setStyleSheet("background-color: #F5F7FA;")
         self.setLayout(layout)
         self.mostrar_deudas()
+
+    def resizeEvent(self, event):
+        new_width = self.width() - 40  # Ajustar al ancho disponible
+        self.lista_deudas.setMinimumWidth(new_width)
+        super().resizeEvent(event)
 
     def mostrar_deudas(self):
         self.lista_deudas.clear()
@@ -86,7 +81,7 @@ class DeudasWidget(QWidget):
         for deuda in deudas:
             item_text = f"Deudor: {deuda[1]}, Monto: {deuda[2]}, Fecha: {deuda[3]}"
             item = QListWidgetItem(item_text)
-            item.setData(Qt.UserRole, deuda[0])  # Guardamos el ID de la deuda
+            item.setData(Qt.UserRole, deuda[0])
             self.lista_deudas.addItem(item)
 
     def marcar_pagada(self):
@@ -97,9 +92,8 @@ class DeudasWidget(QWidget):
         deuda_id = selected_item.data(Qt.UserRole)
         self.cursor.execute("UPDATE deudas SET pagado = 1 WHERE id = ?", (deuda_id,))
         self.conn.commit()
-
         self.mostrar_deudas()
-        self.deuda_pagada.emit()  # Notifica al BalanceWidget
+        self.deuda_pagada.emit()
 
     def actualizar(self):
         self.mostrar_deudas()

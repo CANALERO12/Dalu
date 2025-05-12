@@ -3,7 +3,7 @@ import sqlite3
 import os
 from PySide6.QtWidgets import QApplication, QMainWindow, QTabWidget, QVBoxLayout, QLabel, QWidget, QScrollArea
 from PySide6.QtCore import Qt
-from PySide6.QtGui import QPixmap, QFont, QScreen
+from PySide6.QtGui import QPixmap, QScreen
 from modules.ventas import VentasWidget
 from modules.gastos import GastosWidget
 from modules.deudas import DeudasWidget
@@ -26,7 +26,6 @@ class DaluApp(QMainWindow):
         window_width = int(screen_width * 0.5)  # Reducir a 50% del ancho
         window_height = int(screen_height * 0.8)  # Aumentar a 80% del alto
         self.setMinimumSize(window_width, window_height)  # Tamaño mínimo
-        self.setMaximumSize(int(screen_width * 0.9), int(screen_height * 0.9))  # Límite máximo
         self.resize(window_width, window_height)  # Establecer tamaño inicial
 
         # Inicializar la base de datos y crear tablas
@@ -37,7 +36,7 @@ class DaluApp(QMainWindow):
         # Widget principal con layout vertical
         main_widget = QWidget()
         self.setCentralWidget(main_widget)
-        layout = QVBoxLayout(main_widget)
+        self.layout = QVBoxLayout(main_widget)
 
         # Espacio para el logo
         self.logo_label = QLabel()
@@ -64,7 +63,7 @@ class DaluApp(QMainWindow):
         """)
         self.logo_label.setMaximumSize(220, 220)
         self.logo_label.setMinimumSize(220, 220)
-        layout.addWidget(self.logo_label, alignment=Qt.AlignHCenter)
+        self.layout.addWidget(self.logo_label, alignment=Qt.AlignHCenter)
 
         # Pestañas
         self.tabs = QTabWidget()
@@ -95,7 +94,6 @@ class DaluApp(QMainWindow):
                 background-color: #6AA8F7; 
             }
         """)
-        self.tabs.setMaximumWidth(window_width - 50)  # Limitar el ancho máximo de las pestañas
 
         # Crear instancias de los widgets, pasando la conexión
         self.inventario_widget = InventarioWidget(self.conn)
@@ -112,14 +110,12 @@ class DaluApp(QMainWindow):
         self.tabs.addTab(self.inventario_widget, "Inventario")
 
         # Envolver las pestañas en un QScrollArea
-        scroll_area = QScrollArea()
-        scroll_area.setWidget(self.tabs)
-        scroll_area.setWidgetResizable(True)
-        scroll_area.setHorizontalScrollBarPolicy(Qt.ScrollBarAsNeeded)
-        scroll_area.setVerticalScrollBarPolicy(Qt.ScrollBarAlwaysOn)
-        scroll_area.setMinimumSize(window_width - 50, window_height - 300)  # Ajustar tamaño mínimo
-        scroll_area.setMaximumWidth(window_width - 50)  # Limitar ancho máximo
-        scroll_area.setStyleSheet("""
+        self.scroll_area = QScrollArea()
+        self.scroll_area.setWidget(self.tabs)
+        self.scroll_area.setWidgetResizable(True)
+        self.scroll_area.setHorizontalScrollBarPolicy(Qt.ScrollBarAsNeeded)
+        self.scroll_area.setVerticalScrollBarPolicy(Qt.ScrollBarAlwaysOn)
+        self.scroll_area.setStyleSheet("""
             QScrollArea {
                 background-color: #F5F7FA; 
                 border: none;
@@ -148,22 +144,13 @@ class DaluApp(QMainWindow):
                 background: none;
             }
         """)
-        layout.addWidget(scroll_area)
+        self.layout.addWidget(self.scroll_area)
 
         # Ajustar el layout
-        layout.setContentsMargins(20, 20, 20, 20)
-        layout.setSpacing(15)
-        layout.setStretch(0, 0)  # Logo con peso 0
-        layout.setStretch(1, 1)  # ScrollArea con peso 1 para ocupar el espacio restante
-
-        # Establecer el widget central
-        self.setCentralWidget(main_widget)
-
-        # Conectar señales
-        self.ventas_widget.venta_registrada.connect(self.balance_widget.calcular_balance)
-        self.deudas_widget.deuda_pagada.connect(self.balance_widget.calcular_balance)
-        self.ventas_widget.venta_registrada.connect(self.deudas_widget.actualizar)
-        self.gastos_widget.gasto_registrado.connect(self.balance_widget.calcular_balance)
+        self.layout.setContentsMargins(20, 20, 20, 20)
+        self.layout.setSpacing(15)
+        self.layout.setStretch(0, 0)  # Logo con peso 0
+        self.layout.setStretch(1, 1)  # ScrollArea con peso 1 para ocupar el espacio restante
 
         # Estilo general de la ventana
         self.setStyleSheet("""
@@ -175,6 +162,20 @@ class DaluApp(QMainWindow):
                 font-family: 'Segoe UI', Arial, sans-serif;
             }
         """)
+
+        # Conectar señales
+        self.ventas_widget.venta_registrada.connect(self.balance_widget.calcular_balance)
+        self.deudas_widget.deuda_pagada.connect(self.balance_widget.calcular_balance)
+        self.ventas_widget.venta_registrada.connect(self.deudas_widget.actualizar)
+        self.gastos_widget.gasto_registrado.connect(self.balance_widget.calcular_balance)
+
+    def resizeEvent(self, event):
+        # Ajustar dinámicamente el tamaño del QTabWidget y QScrollArea al redimensionar la ventana
+        new_width = self.width() - 40  # Restar márgenes
+        self.tabs.setMaximumWidth(new_width)
+        self.scroll_area.setMaximumWidth(new_width)
+        self.scroll_area.setMinimumWidth(new_width)
+        super().resizeEvent(event)
 
     def crear_tablas(self):
         # Crear tabla inventario si no existe
